@@ -22,7 +22,7 @@ pub trait Diffable {
 
     /// Compares this `Diffable` to another of the same type to determine the
     /// change(s) that were made.
-    fn diff(&self, new_type: &Self) -> Self::Delta;
+    fn diff(&self, new_type: &Self) -> Vec<Self::Delta>;
 }
 
 #[cfg(test)]
