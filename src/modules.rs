@@ -19,21 +19,21 @@ pub struct ModuleMetadata {
 
 impl From<ItemMod> for ModuleMetadata {
     fn from(src: syn::ItemMod) -> Self {
+        let name = src.ident.to_string();
         src.content
-            .map(|(_, items)| items.into())
+            .map(move |(_, items)| ModuleMetadata::new(name, items))
             .unwrap_or_default()
     }
 }
 
 impl From<File> for ModuleMetadata {
     fn from(src: File) -> Self {
-        src.items.into()
+        ModuleMetadata::new("crate".into(), src.items)
     }
 }
 
-impl From<Vec<Item>> for ModuleMetadata {
-    fn from(items: Vec<Item>) -> Self {
-        let name = src.ident.to_string();
+impl ModuleMetadata {
+    fn new(name: String, items: Vec<Item>) -> Self {
         let mut consts = Vec::new();
         let mut enums = Vec::new();
         let mut functions = Vec::new();
