@@ -1,5 +1,6 @@
 use serde::Deserialize;
 use serde::Serialize;
+use std::convert::TryInto;
 use syn::File;
 use syn::Item;
 use syn::ItemMod;
@@ -47,7 +48,11 @@ impl ModuleMetadata {
                 Item::Const(const_item) => consts.push(const_item.into()),
                 Item::Enum(enum_item) => enums.push(enum_item.into()),
                 Item::Fn(fn_item) => functions.push(fn_item.into()),
-                Item::Macro(macro_item) => macros.push(macro_item.into()),
+                Item::Macro(macro_item) => {
+                    if let Ok(m) = macro_item.try_into() {
+                        macros.push(m)
+                    }
+                }
                 Item::Mod(mod_item) => submodules.push(mod_item.into()),
                 Item::Struct(struct_item) => structs.push(struct_item.into()),
                 Item::Trait(trait_item) => traits.push(trait_item.into()),
