@@ -21,7 +21,7 @@ impl From<ItemMod> for ModuleMetadata {
     fn from(src: syn::ItemMod) -> Self {
         src.content
             .map(|(_, items)| items.into())
-            .unwrap_or_default();
+            .unwrap_or_default()
     }
 }
 
