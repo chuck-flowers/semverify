@@ -1,6 +1,7 @@
 #![warn(clippy::all)]
 #![warn(clippy::pedantic)]
 
+mod comparisons;
 mod consts;
 mod enums;
 mod functions;
