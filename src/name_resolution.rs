@@ -1,4 +1,5 @@
 use std::collections::HashMap;
+use std::convert::TryFrom;
 use std::path::Path;
 use syn::File;
 use syn::Ident;
@@ -6,9 +7,9 @@ use syn::Item;
 
 /// Rewrite the idents of a `syn::File` (and all referenced files) to be fully qualified
 #[allow(dead_code)]
-pub fn resolve_file_identifiers(file: &mut File, path: &Path) {
-    let mut context = Context::default();
-    resolve_file_identifiers_in_context(file, path, &mut context)
+pub fn resolve_file_identifiers(file: &mut File, path: &Path) -> Result<(), ()> {
+    Context::try_from(path)
+        .map(|mut context| resolve_file_identifiers_in_context(file, path, &mut context))
 }
 
 /// Rewrite the idents of a `syn::File` (and all referenced files) to be fully
@@ -55,9 +56,24 @@ fn resolve_item_identifiers_in_context<'a>(
     }
 }
 
-#[derive(Default)]
 struct Context<'a> {
+    root_file: &'a Path,
     frames: Vec<ContextFrame<'a>>,
+}
+
+impl<'a> TryFrom<&'a Path> for Context<'a> {
+    type Error = ();
+
+    fn try_from(root_file: &'a Path) -> Result<Self, ()> {
+        if root_file.is_file() {
+            Ok(Self {
+                root_file,
+                frames: Vec::default(),
+            })
+        } else {
+            Err(())
+        }
+    }
 }
 
 impl<'a> Context<'a> {
@@ -73,12 +89,13 @@ impl<'a> Context<'a> {
     }
 
     /// Getter for the path to the current file
-    fn current_file(&self) -> Option<&'a Path> {
+    fn current_file(&self) -> &'a Path {
         self.frames
             .iter()
             .rev()
             .filter_map(|frame| frame.file)
             .next()
+            .unwrap_or(self.root_file)
     }
 
     /// Lookup the fully qualified version of an identifier based on the
