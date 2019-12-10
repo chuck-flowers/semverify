@@ -21,7 +21,8 @@ fn resolve_file_identifiers_in_context<'a, 'b>(
     'a: 'b,
 {
     context.step_into_file(path);
-    resolve_item_identifiers_in_context(file.items.iter_mut(), context)
+    resolve_item_identifiers_in_context(file.items.iter_mut(), context);
+    context.step_out_of_file();
 }
 
 /// Rewrites all identifiers within an `Iterator` of mutable item references to
