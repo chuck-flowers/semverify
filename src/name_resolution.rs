@@ -62,7 +62,7 @@ struct Context<'a> {
 impl<'a> Context<'a> {
     /// Creates a new scope for the file
     fn step_into_file(&mut self, path: &'a Path) {
-        let frame = ContextFrame::new(path);
+        let frame = ContextFrame::from(path);
         self.frames.push(frame);
     }
 
@@ -73,7 +73,11 @@ impl<'a> Context<'a> {
 
     /// Getter for the path to the current file
     fn current_file(&self) -> Option<&'a Path> {
-        self.frames.last().map(|frame| frame.file)
+        self.frames
+            .iter()
+            .rev()
+            .filter_map(|frame| frame.file)
+            .next()
     }
 
     /// Lookup the fully qualified version of an identifier based on the
@@ -87,15 +91,15 @@ impl<'a> Context<'a> {
     }
 }
 
+#[derive(Default)]
 struct ContextFrame<'a> {
-    file: &'a Path,
+    file: Option<&'a Path>,
     ident_lookup: HashMap<Ident, Ident>,
 }
 
-impl<'a> ContextFrame<'a> {
-    /// Creates a new `ContextFrame` that represents a scope contained within
-    /// the specified file.
-    fn new(file: &'a Path) -> Self {
+impl<'a> From<&'a Path> for ContextFrame<'a> {
+    fn from(file: &'a Path) -> Self {
+        let file = file.into();
         let ident_lookup = HashMap::new();
         Self { file, ident_lookup }
     }
