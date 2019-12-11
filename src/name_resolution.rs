@@ -83,6 +83,12 @@ impl<'a> Context<'a> {
         self.frames.push(frame);
     }
 
+    /// Creates a new scope within the current file.
+    fn step_into(&mut self) {
+        let frame = ContextFrame::default();
+        self.frames.push(frame);
+    }
+
     /// Steps out of the current scope to the previous scope
     fn step_out_of_file(&mut self) {
         self.frames.pop();
