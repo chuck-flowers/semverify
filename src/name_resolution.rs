@@ -1,5 +1,4 @@
 use std::collections::HashMap;
-use std::convert::TryFrom;
 use std::path::Path;
 use syn::File;
 use syn::Ident;
@@ -7,29 +6,24 @@ use syn::Item;
 
 /// Rewrite the idents of a `syn::File` (and all referenced files) to be fully qualified
 #[allow(dead_code)]
-pub fn resolve_file_identifiers(file: &mut File, path: &Path) -> Result<(), ()> {
-    Context::try_from(path)
-        .map(|mut context| resolve_file_identifiers_in_context(file, path, &mut context))
+pub fn resolve_file_identifiers(file: &mut File, path: &Path) {
+    let mut context = Context::default();
+    resolve_file_identifiers_in_context(file, path, &mut context)
 }
 
 /// Rewrite the idents of a `syn::File` (and all referenced files) to be fully
 /// qualified using the provided `Context`.
-fn resolve_file_identifiers_in_context<'a, 'b>(
-    file: &mut File,
-    path: &'a Path,
-    context: &mut Context<'b>,
-) where
-    'a: 'b,
-{
-    context.step_into_file(path);
-    resolve_item_identifiers_in_context(file.items.iter_mut(), context);
-    context.step_out_of_file();
+fn resolve_file_identifiers_in_context(file: &mut File, path: &Path, context: &mut Context) {
+    context.step_into();
+    resolve_item_identifiers_in_context(file.items.iter_mut(), path, context);
+    context.step_out();
 }
 
 /// Rewrites all identifiers within an `Iterator` of mutable item references to
 /// be fully qualified within a provided Context.
 fn resolve_item_identifiers_in_context<'a>(
     items: impl Iterator<Item = &'a mut Item>,
+    path: &Path,
     context: &mut Context,
 ) {
     for item in items {
@@ -56,52 +50,21 @@ fn resolve_item_identifiers_in_context<'a>(
     }
 }
 
-struct Context<'a> {
-    root_file: &'a Path,
-    frames: Vec<ContextFrame<'a>>,
+#[derive(Default)]
+struct Context {
+    frames: Vec<ContextFrame>,
 }
 
-impl<'a> TryFrom<&'a Path> for Context<'a> {
-    type Error = ();
-
-    fn try_from(root_file: &'a Path) -> Result<Self, ()> {
-        if root_file.is_file() {
-            Ok(Self {
-                root_file,
-                frames: Vec::default(),
-            })
-        } else {
-            Err(())
-        }
-    }
-}
-
-impl<'a> Context<'a> {
-    /// Creates a new scope for the file
-    fn step_into_file(&mut self, path: &'a Path) {
-        let frame = ContextFrame::from(path);
-        self.frames.push(frame);
-    }
-
-    /// Creates a new scope within the current file.
+impl Context {
+    /// Creates and steps into a new scope
     fn step_into(&mut self) {
         let frame = ContextFrame::default();
         self.frames.push(frame);
     }
 
     /// Steps out of the current scope to the previous scope
-    fn step_out_of_file(&mut self) {
+    fn step_out(&mut self) {
         self.frames.pop();
-    }
-
-    /// Getter for the path to the current file
-    fn current_file(&self) -> &'a Path {
-        self.frames
-            .iter()
-            .rev()
-            .filter_map(|frame| frame.file)
-            .next()
-            .unwrap_or(self.root_file)
     }
 
     /// Lookup the fully qualified version of an identifier based on the
@@ -116,15 +79,6 @@ impl<'a> Context<'a> {
 }
 
 #[derive(Default)]
-struct ContextFrame<'a> {
-    file: Option<&'a Path>,
+struct ContextFrame {
     ident_lookup: HashMap<Ident, Ident>,
-}
-
-impl<'a> From<&'a Path> for ContextFrame<'a> {
-    fn from(file: &'a Path) -> Self {
-        let file = file.into();
-        let ident_lookup = HashMap::new();
-        Self { file, ident_lookup }
-    }
 }
