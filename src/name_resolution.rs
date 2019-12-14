@@ -15,7 +15,6 @@ impl Default for Context {
 }
 
 impl Context {
-
     /// Creates a new scope
     pub fn step_into(&mut self) {
         unimplemented!()
@@ -34,15 +33,20 @@ impl Context {
     /// Lookup the fully qualified version of an identifier based on the
     /// current `Context`.
     pub fn try_to_resolve_ident(&self, ident: &Ident) -> Option<&Ident> {
-        unimplemented!()
+        self.scopes
+            .iter()
+            .rev()
+            .filter_map(|scope| scope.ident_lookup.get(ident))
+            .next()
+            .or(self.base_scope.ident_lookup.get(ident))
     }
 }
 
-/// Represents the type of a module (whether or not its defined 
+/// Represents the type of a module (whether or not its defined
 /// in the same file).
 enum ModuleType {
     InlineModule,
-    ReferencedModule
+    ReferencedModule,
 }
 
 /// Represents an isolated scope within Rust source code.
@@ -52,5 +56,10 @@ struct ContextScope {
 }
 
 impl From<ModuleType> for ContextScope {
-    fn from(module_type: ModuleType) -> Self { ContextScope { module_type, ident_lookup: HashMap::new() }}
+    fn from(module_type: ModuleType) -> Self {
+        ContextScope {
+            module_type,
+            ident_lookup: HashMap::new(),
+        }
+    }
 }
