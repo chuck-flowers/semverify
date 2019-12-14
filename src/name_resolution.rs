@@ -22,12 +22,16 @@ impl Context {
 
     /// Steps out of the current scope to the previous scope
     pub fn step_out(&mut self) {
-        unimplemented!()
+        self.scopes.pop();
     }
 
     /// Registers an identifier alias within the current scope
-    pub fn register_identifier(&mut self, short_ident: Ident, full_ident: Ident) {
-        unimplemented!()
+    pub fn register_identifier(&mut self, short_ident: Ident, full_ident: Ident) -> Option<Ident> {
+        self.scopes
+            .last_mut()
+            .unwrap_or(&mut self.base_scope)
+            .ident_lookup
+            .insert(short_ident, full_ident)
     }
 
     /// Lookup the fully qualified version of an identifier based on the
