@@ -1,16 +1,19 @@
+use std::path::PathBuf;
 use std::collections::HashMap;
 use syn::Ident;
 
 pub struct Context {
+    current_path: PathBuf,
     base_scope: ContextScope,
     scopes: Vec<ContextScope>,
 }
 
-impl Default for Context {
-    fn default() -> Self {
-        let base_scope = ContextScope::from(ModuleType::InlineModule);
+impl<T: Into<PathBuf>> From<T> for Context {
+    fn from(current_path: T) -> Self {
+        let current_path = current_path.into();
+        let base_scope = ContextScope::from(ModuleType::RootModule);
         let scopes = Vec::default();
-        Context { base_scope, scopes }
+        Context { current_path, base_scope, scopes }
     }
 }
 
@@ -49,6 +52,7 @@ impl Context {
 /// Represents the type of a module (whether or not its defined
 /// in the same file).
 enum ModuleType {
+    RootModule,
     InlineModule,
     ReferencedModule,
 }
