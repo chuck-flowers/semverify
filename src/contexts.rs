@@ -1,28 +1,17 @@
 use std::collections::HashMap;
+use std::path::Path;
 use std::path::PathBuf;
 use syn::Ident;
 use syn::ItemMod;
 
-pub struct Context {
+pub struct Context<'a> {
+    project_directory: &'a Path,
     current_path: PathBuf,
     base_scope: ContextScope,
     scopes: Vec<ContextScope>,
 }
 
-impl<T: Into<PathBuf>> From<T> for Context {
-    fn from(current_path: T) -> Self {
-        let current_path = current_path.into();
-        let base_scope = ContextScope::from(ModuleType::RootModule);
-        let scopes = Vec::default();
-        Context {
-            current_path,
-            base_scope,
-            scopes,
-        }
-    }
-}
-
-impl Context {
+impl<'a> Context<'a> {
     /// Creates a new scope
     pub fn step_into(&mut self, module_item: &ItemMod) {
         // Determine the type of the module
@@ -38,23 +27,6 @@ impl Context {
     }
 
     /// Moves the PathBuf to the specified sub module
-    /// # Examples
-    ///
-    /// ## Submodule to Root
-    ///
-    /// ```
-    /// let path = std::path::PathBuf::new();
-    /// move_to_submodule(&mut path, "foo");
-    /// assert_eq!(path, &["foo.rs"].collect());
-    /// ```
-    ///
-    /// ## Submodule to Submodule
-    ///
-    /// ```
-    /// let path: std::path::PathBuf = ["foo.rs"].collect();
-    /// move_to_submodule(&mut path, "bar");
-    /// assert_eq!(path, &["foo", "bar.rs"].collect());
-    /// ```
     fn move_to_submodule(&mut self, module_name: &str) {
         let path = &mut self.current_path;
         if let Some(curr_mod_name) = path.file_stem().map(|os_str| os_str.to_owned()) {
@@ -96,6 +68,46 @@ impl Context {
     }
 }
 
+impl<'a> From<&'a Path> for Context<'a> {
+    fn from(project_directory: &'a Path) -> Self {
+        let current_path = PathBuf::new();
+        let base_scope = ContextScope::base_scope();
+        let scopes = Vec::new();
+        Self {
+            project_directory,
+            current_path,
+            base_scope,
+            scopes,
+        }
+    }
+}
+
+#[cfg(test)]
+mod context_tests {
+
+    use super::*;
+
+    #[test]
+    fn move_to_submodule_of_root_test() {
+        let project_directory = PathBuf::new();
+        let mut context = Context::from(project_directory.as_path());
+        context.move_to_submodule("foo");
+
+        let expected_path: PathBuf = ["foo.rs"].iter().collect();
+        assert_eq!(context.current_path, expected_path);
+    }
+
+    #[test]
+    fn move_to_submodule_of_submodule_test() {
+        let project_directory = PathBuf::new();
+        let mut context = Context::from(project_directory.as_path());
+        context.move_to_submodule("foo");
+        context.move_to_submodule("bar");
+        let expected_path: PathBuf = ["foo", "bar.rs"].iter().collect();
+        assert_eq!(context.current_path, expected_path);
+    }
+}
+
 /// Represents the type of a module (whether or not its defined
 /// in the same file).
 enum ModuleType {
@@ -108,6 +120,15 @@ enum ModuleType {
 struct ContextScope {
     module_type: ModuleType,
     ident_lookup: HashMap<Ident, Ident>,
+}
+
+impl ContextScope {
+    fn base_scope() -> Self {
+        Self {
+            module_type: ModuleType::RootModule,
+            ident_lookup: HashMap::new(),
+        }
+    }
 }
 
 impl From<ModuleType> for ContextScope {

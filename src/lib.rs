@@ -3,11 +3,11 @@
 
 mod comparisons;
 mod consts;
+mod contexts;
 mod enums;
 mod functions;
 mod macros;
 mod modules;
-mod name_resolution;
 mod structs;
 mod traits;
 
