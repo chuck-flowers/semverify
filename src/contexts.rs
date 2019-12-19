@@ -139,3 +139,17 @@ impl From<ModuleType> for ContextScope {
         }
     }
 }
+
+pub trait FromContext<T> {
+    fn from_context(context: &Context, src: T) -> Self;
+}
+
+pub trait FromContextMut<T> {
+    fn from_context_mut(context: &mut Context, src: T) -> Self;
+}
+
+impl<T: FromContext<T>> FromContextMut<T> for T {
+    fn from_context_mut(context: &mut Context, src: T) -> Self {
+        <Self as FromContext<T>>::from_context(&context, src)
+    }
+}
